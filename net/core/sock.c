@@ -114,6 +114,7 @@
 #include <linux/memcontrol.h>
 #include <linux/prefetch.h>
 #include <linux/compat.h>
+#include <linux/anon_inodes.h>
 
 #include <linux/uaccess.h>
 
@@ -1570,6 +1571,41 @@ int sock_getsockopt(struct socket *sock, int level, int optname,
 		if (copy_to_user(optval, &peercred, len))
 			return -EFAULT;
 		goto lenout;
+	}
+
+	case SO_PEERPIDFD:
+	{
+		int pidfd;
+		struct file *pidfile = NULL;
+
+		pidfd = get_unused_fd_flags(O_RDWR | O_CLOEXEC);
+		if (pidfd < 0)
+			return pidfd;
+
+		pidfile = anon_inode_getfile("[pidfd]", &pidfd_fops, sk->sk_peer_pid,
++                                             O_RDWR | O_CLOEXEC);
+		if (IS_ERR(pidfile)) {
+			put_unused_fd(pidfd);
+			return PTR_ERR(pidfile);
+		}
+
+		len = min_t(unsigned int, len, sizeof(pidfd));
+		if (put_user(len, optlen)) {
+			fput(pidfile);
+			put_unused_fd(pidfd);
+			return -EFAULT;
+		}
+
+		if (copy_to_user(optval, &pidfd, len)) {
+			fput(pidfile);
+			put_unused_fd(pidfd);
+			return -EFAULT;
+		}
+
+		get_pid(sk->sk_peer_pid);
+		fd_install(pidfd, pidfile);
+
+		return 0;
 	}
 
 	case SO_PEERGROUPS:

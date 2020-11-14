@@ -32,6 +32,7 @@
 #define SO_SNDLOWAT	19
 #define SO_RCVTIMEO_OLD	20
 #define SO_SNDTIMEO_OLD	21
+#define SO_PEERPIDFD	22
 #endif
 
 /* Security levels - as per NRL IPv6 - don't actually do anything */
