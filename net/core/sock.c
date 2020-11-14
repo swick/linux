@@ -114,6 +114,8 @@
 #include <linux/memcontrol.h>
 #include <linux/prefetch.h>
 #include <linux/compat.h>
+#include <linux/anon_inodes.h>
+#include <linux/pidfd.h>
 
 #include <linux/uaccess.h>
 
@@ -1570,6 +1572,45 @@ int sock_getsockopt(struct socket *sock, int level, int optname,
 		if (copy_to_user(optval, &peercred, len))
 			return -EFAULT;
 		goto lenout;
+	}
+
+	case SO_PEERPIDFD:
+	{
+		int pidfd;
+		struct file *pidfile = NULL;
+
+		/* We can't use pidfd_create_fd because it installs the file
+		 * in the fd immediately but the copy_to_user function might
+		 * then fail.
+		 * For the same reason we have to write optlen here instead
+		 * of using goto lenout;
+		 */
+		pidfd = get_unused_fd_flags(O_RDWR | O_CLOEXEC);
+		if (pidfd < 0)
+			return pidfd;
+
+		pidfile = pidfd_create_file(sk->sk_peer_pid, 0);
+		if (IS_ERR(pidfile)) {
+			put_unused_fd(pidfd);
+			return PTR_ERR(pidfile);
+		}
+
+		len = min_t(unsigned int, len, sizeof(pidfd));
+		if (put_user(len, optlen)) {
+			fput(pidfile);
+			put_unused_fd(pidfd);
+			return -EFAULT;
+		}
+
+		if (copy_to_user(optval, &pidfd, len)) {
+			fput(pidfile);
+			put_unused_fd(pidfd);
+			return -EFAULT;
+		}
+
+		fd_install(pidfd, pidfile);
+
+		return 0;
 	}
 
 	case SO_PEERGROUPS:
