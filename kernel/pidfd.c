@@ -10,17 +10,8 @@
 #include <linux/poll.h>
 #include <linux/anon_inodes.h>
 #include <linux/ptrace.h>
-#include <linux/pidfd.h>
 
 #include <uapi/linux/pidfd.h>
-
-struct pid *pidfd_pid(const struct file *file)
-{
-	if (file->f_op == &pidfd_fops)
-		return file->private_data;
-
-	return ERR_PTR(-EBADF);
-}
 
 static int pidfd_release(struct inode *inode, struct file *file)
 {
@@ -119,13 +110,21 @@ static __poll_t pidfd_poll(struct file *file, struct poll_table_struct *pts)
 	return poll_flags;
 }
 
-const struct file_operations pidfd_fops = {
+static const struct file_operations pidfd_fops = {
 	.release = pidfd_release,
 	.poll = pidfd_poll,
 #ifdef CONFIG_PROC_FS
 	.show_fdinfo = pidfd_show_fdinfo,
 #endif
 };
+
+struct pid *pidfd_pid(const struct file *file)
+{
+	if (file->f_op == &pidfd_fops)
+		return file->private_data;
+
+	return ERR_PTR(-EBADF);
+}
 
 struct pid *pidfd_get_pid(unsigned int fd, unsigned int *flags)
 {
