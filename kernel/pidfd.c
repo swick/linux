@@ -180,6 +180,18 @@ int pidfd_create(struct pid *pid, unsigned int flags)
 	return fd;
 }
 
+struct file *pidfd_create_file(struct pid *pid, unsigned int flags)
+{
+	struct file *pidfile = NULL;
+
+	pidfile = anon_inode_getfile("[pidfd]", &pidfd_fops, get_pid(pid),
+				     flags | O_RDWR | O_CLOEXEC);
+	if (IS_ERR(pidfile))
+		put_pid(pid);
+
+	return pidfile;
+}
+
 /**
  * pidfd_open() - Open new pid file descriptor.
  *
