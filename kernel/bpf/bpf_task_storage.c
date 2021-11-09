@@ -17,6 +17,7 @@
 #include <uapi/linux/btf.h>
 #include <linux/btf_ids.h>
 #include <linux/fdtable.h>
+#include <linux/pidfd.h>
 
 DEFINE_BPF_STORAGE_CACHE(task_cache);
 

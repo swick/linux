@@ -64,6 +64,7 @@
 #include <linux/rcuwait.h>
 #include <linux/compat.h>
 #include <linux/io_uring.h>
+#include <linux/pidfd.h>
 
 #include <linux/uaccess.h>
 #include <asm/unistd.h>

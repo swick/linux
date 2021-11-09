@@ -26,6 +26,7 @@
 #include <linux/syscalls.h>
 #include <linux/cgroup.h>
 #include <linux/perf_event.h>
+#include <linux/pidfd.h>
 
 static struct kmem_cache *nsproxy_cachep;
 
